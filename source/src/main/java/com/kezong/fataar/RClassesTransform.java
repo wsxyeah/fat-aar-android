@@ -122,6 +122,18 @@ public class RClassesTransform extends Transform {
                     final ClassPool classPool = new ClassPool();
                     classPool.insertClassPath(directoryFile.getAbsolutePath());
 
+                    directoryInput.getChangedFiles().entrySet().stream()
+                            .filter(it -> it.getValue() == Status.REMOVED)
+                            .forEach(it -> {
+                                File file = it.getKey();
+                                if (file.getPath().endsWith(".class")) {
+                                    String relative = FilesKt.toRelativeString(file, directoryFile);
+                                    File outputFile = new File(outputDir, relative);
+                                    outputFile.delete();
+                                    project.getLogger().debug("delete file: " + outputFile.getAbsolutePath());
+                                }
+                            });
+
                     for (final File originalClassFile : getChangedClassesList(directoryInput)) {
                         if (!originalClassFile.getPath().endsWith(".class")) {
                             continue; // ignore anything that is not class file
@@ -200,10 +212,6 @@ public class RClassesTransform extends Transform {
                     .map(Path::toFile)
                     .collect(Collectors.toList());
         } else {
-            changedFiles.entrySet().stream()
-                    .filter(it -> it.getValue() == Status.REMOVED)
-                    .forEach(it -> it.getKey().delete());
-
             return changedFiles.entrySet().stream()
                     .filter(it -> it.getValue() == Status.ADDED || it.getValue() == Status.CHANGED)
                     .map(Map.Entry::getKey)
